@@ -4,7 +4,7 @@ Streamlit 前端应用（美化版）
 颜色：高科技蓝色（#0072CE）与绿色（#00B388）
 标语：万高数据，一问直答
 
-说明：此文件是你原始 frontend.py 的美化版本，保留现有功能与 API 调用逻辑，仅对 UI/样式、布局与体验进行了增强。
+说明：原始 frontend.py 的美化版本，保留现有功能与 API 调用逻辑，仅对 UI/样式、布局与体验进行了增强
 """
 
 import streamlit as st
@@ -34,32 +34,14 @@ st.set_page_config(
 PRIMARY_BLUE = "#0072CE"
 PRIMARY_GREEN = "#00B388"
 
-# 自定义 CSS（banner + 按钮 + 卡片 + 字体微调）
-st.markdown(f"""
+# ==================== 安全版 CSS（不含任何 Python 变量） ====================
+css_safe = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-html, body, [class*="css"]  {{ font-family: 'Inter', sans-serif; }}
+html, body, [class*="css"]  { font-family: 'Inter', sans-serif; }
 
-.header-banner{{
-  background: linear-gradient(90deg, {PRIMARY_BLUE} 0%, {PRIMARY_GREEN} 100%);
-  color: white;
-  padding: 1.1rem 1.4rem;
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-  margin-bottom: 1rem;
-}}
-.brand-title{{
-  font-size: 1.6rem;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}}
-.tagline{{
-  opacity: 0.92;
-  font-size: 0.95rem;
-  margin-top: 0.1rem;
-}}
-
-.stButton>button{{
+/* 全局按钮样式 */
+.stButton>button{
   width: 100%;
   height: 2.6rem;
   font-size: 1rem;
@@ -67,22 +49,16 @@ html, body, [class*="css"]  {{ font-family: 'Inter', sans-serif; }}
   border-radius: 8px;
   border: none;
   box-shadow: none;
-}}
-
-/* 渐变主按钮 */
-.btn-primary>button{{
-  background: linear-gradient(90deg, {PRIMARY_BLUE}, {PRIMARY_GREEN});
-  color: white;
-}}
+}
 
 /* 卡片样式 */
-.card{{
+.card{
   padding: 0.9rem;
   border-radius: 10px;
   background: white;
   box-shadow: 0 4px 12px rgba(0,0,0,0.06);
   border: 1px solid rgba(0,0,0,0.04);
-}}
+}
 
 .metric-custom{
   background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
@@ -95,7 +71,20 @@ html, body, [class*="css"]  {{ font-family: 'Inter', sans-serif; }}
 .small-muted { color: #6b7280; font-size: 0.9rem; }
 
 </style>
-""", unsafe_allow_html=True)
+"""
+
+# ==================== 可变量版 CSS（只有需要替换的颜色/渐变，安全地通过字符串拼接构建）
+css_vars = (
+    "<style>"
+    " .header-banner{ background: linear-gradient(90deg, " + PRIMARY_BLUE + " 0%, " + PRIMARY_GREEN + " 100%); color: white; padding: 1.1rem 1.4rem; border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.12); margin-bottom: 1rem; }"
+    " .brand-title{ font-size: 1.6rem; font-weight: 700; letter-spacing: 0.2px; }"
+    " .tagline{ opacity: 0.92; font-size: 0.95rem; margin-top: 0.1rem; }"
+    " .btn-primary>button{ background: linear-gradient(90deg, " + PRIMARY_BLUE + ", " + PRIMARY_GREEN + "); color: white; }"
+    "</style>"
+)
+
+# 注入 CSS（先安全版，再变量版）
+st.markdown(css_safe + css_vars, unsafe_allow_html=True)
 
 # ==================== 后端配置 ====================
 BACKEND_BASE_URL = os.getenv(
@@ -118,7 +107,7 @@ def render_header():
     left, mid, right = st.columns([3, 6, 1])
     with mid:
         st.markdown(
-            f"""
+            """
             <div class="header-banner">
                 <div class="brand-title">施耐德万高</div>
                 <div class="tagline">万高数据，一问直答</div>
@@ -216,7 +205,8 @@ def query_page():
         st.markdown("## 📋 订单查询")
         query_text = st.text_area(
             "请输入您的查询（支持自然语言）",
-            placeholder="例如：查询订单 4200000001 的状态\n或者：我想知道订单号 4200000002 现在怎么样了",
+            placeholder="例如：查询订单 4200000001 的状态
+或者：我想知道订单号 4200000002 现在怎么样了",
             height=120
         )
 
@@ -276,7 +266,10 @@ def query_page():
 
     with outer_col2:
         st.markdown("**查询示例：**")
-        st.markdown("- 订单 4200000001 的状态\n- 查询订单 4200000002\n- 订单号 4200000003 现在怎么样\n- 我的订单 4200000004 完成了吗")
+        st.markdown("- 订单 4200000001 的状态
+- 查询订单 4200000002
+- 订单号 4200000003 现在怎么样
+- 我的订单 4200000004 完成了吗")
         st.markdown("---")
         st.markdown("## 📜 查询历史")
         if st.session_state.query_history:
