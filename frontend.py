@@ -67,9 +67,9 @@ st.markdown("""
 
 # BACKEND_URL = "http://127.0.0.1:8000" 本地调试使用，提供参考
 
-BACKEND_URL = os.getenv(
-    "BACKEND_API_URL",
-    "http://127.0.0.1:8000"  # 本地开发兜底
+BACKEND_BASE_URL = os.getenv(
+    "BACKEND_BASE_URL",
+    "http://127.0.0.1:8000"  # 本地兜底
 )
 
 
