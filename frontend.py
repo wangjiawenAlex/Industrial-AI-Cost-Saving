@@ -189,7 +189,7 @@ def query_page():
     col1, col2, col3 = st.columns([3, 1, 1])
     with col1:
         st.markdown(f"### 👋 欢迎，{st.session_state.username}！")
-        st.markdown("<div class='small-muted'>在这里输入自然语言查询，系统会返回 SAP 订单信息并由 AI 美化回答。</div>", unsafe_allow_html=True)
+        st.markdown("<div class='small-muted'>在这里输入你的问题，系统会返回 SAP 订单信息并由 AI 美化回答。</div>", unsafe_allow_html=True)
     with col3:
         if st.button("退出登录"):
             st.session_state.user_id = None
@@ -205,10 +205,10 @@ def query_page():
         st.markdown("## 📋 订单查询")
         query_text = st.text_area(
             "请输入您的查询（支持自然语言）",
-            placeholder="例如：查询订单 4200000001 的状态
-或者：我想知道订单号 4200000002 现在怎么样了",
+            placeholder="例如：查询订单 4200000001 的状态\n或者：我想知道订单号 4200000002 现在怎么样了",
             height=120
         )
+
 
         if st.button("🔍 查询", use_container_width=True, key="query_btn"):
             if not query_text.strip():
