@@ -105,7 +105,7 @@ def login_page():
             logger.info(f"🔐 用户点击登陆: {username}")
             
             try:
-                login_url = f"{BACKEND_URL}/api/login"
+                login_url = f"{BACKEND_BASE_URL}/api/login"
                 st.write(f"调试: 请求URL = {login_url}")
                 logger.info(f"发送请求到: {login_url}")
                 
@@ -191,7 +191,7 @@ def query_page():
             with st.spinner("正在处理您的查询..."):
                 try:
                     response = requests.post(
-                        f"{BACKEND_URL}/api/query",
+                        f"{BACKEND_BASE_URL}/api/query",
                         json={
                             "user_id": st.session_state.user_id,
                             "query_text": query_text
