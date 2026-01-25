@@ -266,10 +266,12 @@ def query_page():
 
     with outer_col2:
         st.markdown("**查询示例：**")
-        st.markdown("- 订单 4200000001 的状态
-- 查询订单 4200000002
-- 订单号 4200000003 现在怎么样
-- 我的订单 4200000004 完成了吗")
+        st.markdown(
+            "- 订单 4200000001 的状态\n"
+            "- 查询订单 4200000002\n"
+            "- 订单号 4200000003 现在怎么样\n"
+            "- 我的订单 4200000004 完成了吗"
+        )
         st.markdown("---")
         st.markdown("## 📜 查询历史")
         if st.session_state.query_history:
