@@ -191,147 +191,6 @@ LLM 结果美化（组织友好的中文回复）
 3. **HTTPS**：未启用。生产环境应配置 SSL/TLS。
 4. **CORS**：允许所有来源。生产环境应限制来源。
 
-## 🛠️ 内网部署建议
-
-### 在公司服务器上部署
-
-1. **使用 Docker Compose 部署**：
-   ```bash
-   docker-compose up -d
-   ```
-
-2. **配置反向代理（Nginx）**：
-   ```nginx
-   server {
-       listen 80;
-       server_name sap-query.internal;
-       
-       location / {
-           proxy_pass http://127.0.0.1:8501;
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-       }
-   }
-   ```
-
-3. **配置防火墙**：
-   - 仅允许内网 IP 访问
-   - 关闭外网访问
-
-4. **监控和日志**：
-   - 定期检查 `query_logs` 表
-   - 监控 API 响应时间
-   - 设置告警机制
-
-## 🔄 从模拟 SAP 到真实 SAP 的迁移
-
-当您准备连接真实 SAP 系统时：
-
-1. **安装 PyRFC**：
-   ```bash
-   pip install PyRFC
-   ```
-
-2. **修改 `sap_mock.py`**：
-   将 `query_sap_order_status()` 函数替换为真实的 PyRFC 调用：
-   ```python
-   from pyrfc import Connection
-   
-   def query_sap_order_status(order_id: str):
-       conn = Connection(
-           ashost='sap-server.internal',
-           sysnr='00',
-           client='100',
-           user='username',
-           passwd='password'
-       )
-       result = conn.call('BAPI_SALESORDER_GETLIST', ...)
-       conn.close()
-       return result
-   ```
-
-3. **测试连接**：
-   在 SAP 测试环境中进行充分测试
-
-## 📝 API 文档
-
-### 登录接口
-
-**POST** `/api/login`
-
-请求体：
-```json
-{
-  "username": "user1",
-  "password": "password123"
-}
-```
-
-响应：
-```json
-{
-  "success": true,
-  "message": "登录成功，欢迎 user1！",
-  "user_id": 1
-}
-```
-
-### 查询接口
-
-**POST** `/api/query`
-
-请求体：
-```json
-{
-  "user_id": 1,
-  "query_text": "查询订单 4200000001 的状态"
-}
-```
-
-响应：
-```json
-{
-  "success": true,
-  "message": "查询成功",
-  "order_id": "4200000001",
-  "sap_status": "制作中",
-  "final_response": "您的订单 4200000001 目前处于制作中状态，已完成 50% 的工序，预计在 2026-01-24 完成。",
-  "log_id": 1
-}
-```
-
-### 查询历史接口
-
-**GET** `/api/logs/{user_id}`
-
-响应：
-```json
-{
-  "user_id": 1,
-  "logs": [
-    {
-      "id": 1,
-      "timestamp": "2026-01-21T10:30:00",
-      "raw_query": "查询订单 4200000001 的状态",
-      "order_id": "4200000001",
-      "status": "success"
-    }
-  ]
-}
-```
-
-### 健康检查接口
-
-**GET** `/health`
-
-响应：
-```json
-{
-  "status": "ok",
-  "message": "SAP Query API is running"
-}
-```
-
 ## 🐛 常见问题
 
 ### Q1：启动 Streamlit 时出现 "Welcome to Streamlit!" 提示
@@ -368,12 +227,10 @@ LLM 结果美化（组织友好的中文回复）
 如有问题或建议，请：
 1. 检查日志文件
 2. 查看 API 文档
-3. 联系项目维护者
+3. 联系项目维护者：chusilouliu@163.com
 
 ## 📄 许可证
 
 MIT License
 
 ---
-
-**最后更新：** 2026-01-21
