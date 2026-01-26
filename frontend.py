@@ -210,11 +210,6 @@ def query_page():
             height=120
         )
 
-# 添加一个session验证的模块，避免401报错
-        if st.session_state.user_id is None:
-            st.error("登录状态已失效，请重新登录")
-            st.stop()
-
 
         if st.button("🔍 查询", use_container_width=True, key="query_btn"):
             if not query_text.strip():
