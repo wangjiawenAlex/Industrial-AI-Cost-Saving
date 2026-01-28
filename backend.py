@@ -1,8 +1,3 @@
-"""
-FastAPI 后端应用
-处理用户认证、查询、日志记录等核心业务逻辑
-"""
-
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -16,20 +11,16 @@ from llm_handler import LLMHandler
 import os
 import logging
 
-# 配置日志
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# 创建 FastAPI 应用
 app = FastAPI(title="SAP Query API", version="1.0.0")
 
-# 请求日志中间件 - 记录所有请求
 @app.middleware("http")
 async def log_requests(request, call_next):
-    """记录所有HTTP请求"""
     logger.info(f"📨 收到请求: {request.method} {request.url.path}")
     logger.debug(f"   Headers: {dict(request.headers)}")
     
@@ -41,7 +32,6 @@ async def log_requests(request, call_next):
         logger.error(f"❌ 请求处理异常: {str(e)}", exc_info=True)
         raise
 
-# 配置 CORS，允许 Streamlit 前端访问
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -50,7 +40,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 初始化 LLM 处理器
 try:
     llm_handler = LLMHandler()
 except ValueError as e:
@@ -60,16 +49,12 @@ except ValueError as e:
     print("   PowerShell: $env:DEEPSEEK_API_KEY='your_api_key'")
     llm_handler = None
 
-
-# 启动事件 - 应用启动时的诊断
 @app.on_event("startup")
 async def startup_event():
-    """应用启动时的初始化和诊断"""
     print("\n" + "="*60)
     print("🚀 SAP Query API 启动中...")
     print("="*60)
-    
-    # 检查数据库
+
     try:
         from sqlalchemy import inspect
         inspector = inspect(engine)
@@ -80,14 +65,12 @@ async def startup_event():
             print("⚠️  数据库表未初始化")
     except Exception as e:
         print(f"❌ 数据库连接失败: {e}")
-    
-    # 检查 LLM
+
     if llm_handler:
         print("✅ LLM 处理器初始化成功")
     else:
         print("⚠️  LLM 处理器未初始化 (DEEPSEEK_API_KEY 未设置)")
-    
-    # 检查 SAP Mock
+
     print("✅ SAP Mock 服务已加载")
     
     print("="*60)
@@ -96,30 +79,20 @@ async def startup_event():
     print("📍 API 文档: http://127.0.0.1:8000/docs")
     print("="*60 + "\n")
 
-
-# ==================== 数据模型 ====================
-
 class LoginRequest(BaseModel):
-    """登录请求"""
     username: str
     password: str
 
-
 class LoginResponse(BaseModel):
-    """登录响应"""
     success: bool
     message: str
     user_id: int = None
 
-
 class QueryRequest(BaseModel):
-    """查询请求"""
     user_id: int
     query_text: str
 
-
 class QueryResponse(BaseModel):
-    """查询响应"""
     success: bool
     message: str
     order_id: str = None
@@ -127,30 +100,12 @@ class QueryResponse(BaseModel):
     final_response: str = None
     log_id: int = None
 
-
-# ==================== 用户认证 ====================
-
 @app.post("/api/login", response_model=LoginResponse)
 def login(request: LoginRequest, db: Session = Depends(get_db)):
-    """
-    用户登录接口
-    
-    Args:
-        request: 包含用户名和密码
-        db: 数据库会话
-        
-    Returns:
-        登录结果
-    """
-    
-    logger.debug(f"📝 收到登录请求: username={request.username}")
-    
     try:
-        # 从数据库查询用户
         user = db.query(User).filter(User.username == request.username).first()
         
         if not user:
-            # 如果用户不存在，创建新用户（Demo 模式）
             logger.info(f"👤 创建新用户: {request.username}")
             try:
                 new_user = User(username=request.username, password=request.password)
@@ -170,8 +125,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
                     success=False,
                     message=f"创建用户失败: {str(e)}"
                 )
-        
-        # 验证密码（Demo 模式下不做加密验证）
+
         if user.password != request.password:
             logger.warning(f"❌ 密码错误: {request.username}")
             return LoginResponse(
@@ -191,30 +145,15 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         return LoginResponse(
             success=False,
             message=f"登录异常: {str(e)}")
-        
+
     return LoginResponse(
         success=True,
         message=f"登录成功，欢迎 {user.username}！",
         user_id=user.id
     )
 
-
-# ==================== 查询处理 ====================
-
 @app.post("/api/query", response_model=QueryResponse)
 def process_query(request: QueryRequest, db: Session = Depends(get_db)):
-    """
-    处理用户查询
-    流程：意图识别 -> SAP 查询 -> 结果美化 -> 日志记录
-    
-    Args:
-        request: 包含 user_id 和 query_text
-        db: 数据库会话
-        
-    Returns:
-        查询结果
-    """
-    
     # 验证用户
     user = db.query(User).filter(User.id == request.user_id).first()
     if not user:
@@ -227,7 +166,6 @@ def process_query(request: QueryRequest, db: Session = Depends(get_db)):
     )
     
     try:
-        # 第一步：LLM 意图识别
         if not llm_handler:
             return QueryResponse(
                 success=False,
@@ -235,7 +173,7 @@ def process_query(request: QueryRequest, db: Session = Depends(get_db)):
             )
         
         success, intent_result = llm_handler.extract_intent(request.query_text)
-        
+
         if not success:
             log_entry.status = "error"
             log_entry.llm_extracted_intent = json.dumps(intent_result, ensure_ascii=False)
@@ -246,11 +184,10 @@ def process_query(request: QueryRequest, db: Session = Depends(get_db)):
                 success=False,
                 message=f"意图识别失败: {intent_result.get('error', '未知错误')}"
             )
-        
+
         order_id = intent_result.get("order_id", "").strip()
         log_entry.llm_extracted_intent = json.dumps(intent_result, ensure_ascii=False)
-        
-        # 验证订单号
+
         if not order_id or not validate_order_id(order_id):
             log_entry.status = "error"
             db.add(log_entry)
@@ -260,17 +197,15 @@ def process_query(request: QueryRequest, db: Session = Depends(get_db)):
                 success=False,
                 message=f"无法识别有效的订单号。您的查询: {request.query_text}"
             )
-        
-        # 第二步：SAP 查询（目前硬编码返回"制作中"）
+
         sap_response = query_sap_order_status(order_id)
         log_entry.sap_raw_response = json.dumps(sap_response, ensure_ascii=False)
-        
-        # 第三步：LLM 结果美化
+
         success, beautified_response = llm_handler.beautify_response(
             request.query_text,
             sap_response
         )
-        
+
         if not success:
             log_entry.status = "error"
             log_entry.llm_final_response = beautified_response
@@ -284,8 +219,7 @@ def process_query(request: QueryRequest, db: Session = Depends(get_db)):
         
         log_entry.llm_final_response = beautified_response
         log_entry.status = "success"
-        
-        # 保存日志
+
         db.add(log_entry)
         db.commit()
         db.refresh(log_entry)
@@ -298,7 +232,7 @@ def process_query(request: QueryRequest, db: Session = Depends(get_db)):
             final_response=beautified_response,
             log_id=log_entry.id
         )
-        
+
     except Exception as e:
         log_entry.status = "error"
         db.add(log_entry)
@@ -309,20 +243,8 @@ def process_query(request: QueryRequest, db: Session = Depends(get_db)):
             message=f"查询处理异常: {str(e)}"
         )
 
-
 @app.get("/api/logs/{user_id}")
 def get_user_logs(user_id: int, db: Session = Depends(get_db)):
-    """
-    获取用户的查询历史日志
-    
-    Args:
-        user_id: 用户 ID
-        db: 数据库会话
-        
-    Returns:
-        日志列表
-    """
-    
     logs = db.query(QueryLog).filter(QueryLog.user_id == user_id).order_by(
         QueryLog.timestamp.desc()
     ).limit(20).all()
@@ -341,10 +263,8 @@ def get_user_logs(user_id: int, db: Session = Depends(get_db)):
         ]
     }
 
-
 @app.get("/")
 def root():
-    """根路由 - API 信息"""
     return {
         "status": "running",
         "message": "SAP Query API",
@@ -357,11 +277,8 @@ def root():
             "docs": "GET /docs"
         }
     }
-
-
 @app.get("/health")
 def health_check():
-    """健康检查接口"""
     return {"status": "ok", "message": "SAP Query API is running"}
 
 

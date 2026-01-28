@@ -7,11 +7,9 @@ import os
 import time
 import base64
 
-# ==================== 0. 全局配置与日志 ====================
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 禁用HTTP代理 - 解决502问题
 os.environ['NO_PROXY'] = '*'
 os.environ['no_proxy'] = '*'
 
@@ -22,12 +20,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 后端配置
 BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "http://127.0.0.1:8000")
 
-# ==================== 图片加载函数 ====================
 def get_image_base64(image_path):
-    """将图片转换为 base64 编码"""
     try:
         with open(image_path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
@@ -35,7 +30,6 @@ def get_image_base64(image_path):
         logger.error(f"图片加载失败: {e}")
         return None
 
-# ==================== 1. 色彩方案 ====================
 PRIMARY_GREEN = "#3DCD58"
 GRAY = "#626469"
 YELLOW = "#FFD100"
@@ -44,8 +38,6 @@ RED = "#B10043"
 BLUE = "#42B4E6"
 WHITE = "#FFFFFF"
 BLACK = "#000000"
-
-# ==================== 2. UI 资源整合 ====================
 
 LEFT_PANEL_HTML = """
 <div class="login-left-panel">
@@ -604,7 +596,6 @@ header {{visibility: hidden;}}
 </style>
 """
 
-# ==================== 3. Session State 管理 ====================
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
 if "username" not in st.session_state:
@@ -614,7 +605,6 @@ if "query_history" not in st.session_state:
 if "current_response" not in st.session_state:
     st.session_state.current_response = None
 
-# ==================== 4. 登录页面 ====================
 def login_page():
     st.markdown(CSS_LOGIN, unsafe_allow_html=True)
     st.markdown(LEFT_PANEL_HTML, unsafe_allow_html=True)
@@ -657,7 +647,7 @@ def login_page():
                         response = requests.post(
                             login_url,
                             json={"username": username, "password": password},
-                            timeout=10, 
+                            timeout=10,
                             proxies={"http": None, "https": None}
                         )
 
@@ -687,7 +677,6 @@ def login_page():
                 </div>
             """, unsafe_allow_html=True)
 
-# ==================== 5. 查询页面 ====================
 def query_page():
     st.markdown(CSS_QUERY_PAGE, unsafe_allow_html=True)
     
@@ -713,16 +702,16 @@ def query_page():
             <div style="color: rgba(255,255,255,0.9); font-size: 0.85rem; margin-top: 0.3rem;">History Records</div>
         </div>
         """, unsafe_allow_html=True)
-        
+
         if st.button("🚪 退出登录", use_container_width=True):
             st.session_state.user_id = None
             st.session_state.username = None
             st.session_state.query_history = []
             st.session_state.current_response = None
             st.experimental_rerun()
-        
+
         st.markdown("---")
-        
+
         if st.session_state.query_history:
             for idx, item in enumerate(st.session_state.query_history[:15]):
                 with st.expander(f"📝 订单 {item['order_id']}", expanded=False):
@@ -753,8 +742,7 @@ def query_page():
             height=120,
             label_visibility="collapsed"
         )
-        
-        # 查询按钮 - 使用完整宽度避免文字被截断
+
         if st.button(" 开始查询", use_container_width=True, key="main_query_btn"):
             if not query_text.strip():
                 st.error("❌ 请输入查询内容")
@@ -801,7 +789,7 @@ def query_page():
 
         if st.session_state.current_response:
             st.markdown("---")
-            
+
             c1, c2, c3 = st.columns(3)
             with c1:
                 st.markdown(f"""
@@ -842,7 +830,7 @@ def query_page():
             <div class="example-item">• 帮我查一下订单 4200000004</div>
         </div>
         """, unsafe_allow_html=True)
-        
+
         st.markdown(f"""
         <div style="background: white; border-radius: 12px; padding: 1.2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
             <div style="font-size: 1rem; font-weight: 600; color: {GRAY}; margin-bottom: 0.8rem;">ℹ️ 系统信息</div>
@@ -854,8 +842,7 @@ def query_page():
             </div>
         </div>
         """, unsafe_allow_html=True)
-        
-        # 只显示图片，无背景框
+
         st.markdown('<div style="margin-top: 1.5rem;"></div>', unsafe_allow_html=True)
         try:
             st.image("sw.png", use_column_width=True)
@@ -864,21 +851,20 @@ def query_page():
             if img_base64:
                 st.markdown(f"""
                 <div style="text-align: center; margin-top: 1.5rem;">
-                    <img src="data:image/png;base64,{img_base64}" 
-                         style="max-width: 100%; height: auto;" 
+                    <img src="data:image/png;base64,{img_base64}"
+                         style="max-width: 100%; height: auto;"
                          alt="Schneider Electric Logo">
                 </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
-                <div style="background: linear-gradient(135deg, {PRIMARY_GREEN} 0%, #2BA845 100%); 
+                <div style="background: linear-gradient(135deg, {PRIMARY_GREEN} 0%, #2BA845 100%);
                             border-radius: 12px; padding: 1.5rem; text-align: center; margin-top: 1.5rem;">
                     <div style="color: white; font-size: 1.8rem; font-weight: 800;">SE</div>
                     <div style="color: white; font-size: 0.9rem; font-weight: 600;">Schneider Electric</div>
                 </div>
                 """, unsafe_allow_html=True)
 
-# ==================== 6. 主程序入口 ====================
 def main():
     if st.session_state.user_id is None:
         login_page()
