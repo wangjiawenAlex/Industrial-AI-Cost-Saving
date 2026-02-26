@@ -234,3 +234,33 @@ LLM 结果美化（组织友好的中文回复）
 MIT License
 
 ---
+
+## 🐳 一键 Docker 部署（推荐）
+
+### 1) 准备环境变量
+
+```bash
+cp .env.example .env
+# 编辑 .env，填入企业 DeepSeek Key
+```
+
+### 2) 启动全部服务（前端 + 后端 + PostgreSQL）
+
+```bash
+docker compose up -d --build
+```
+
+### 3) 访问地址
+
+- 前端：`http://localhost:8501`
+- 后端：`http://localhost:8000`
+- 后端健康检查：`http://localhost:8000/health`
+- PostgreSQL：`localhost:5432`
+
+> 首次启动会自动执行 `db/init/*.sql` 初始化三张核心表：`users`、`business_data`、`query_logs`。
+
+### 4) 停止服务
+
+```bash
+docker compose down
+```
