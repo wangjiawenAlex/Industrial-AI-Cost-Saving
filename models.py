@@ -6,7 +6,7 @@ from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg2://sap_user:sap_pass@postgres:5432/sap_demo",
+    "sqlite:///./sap_data.db",  # 改为 SQLite
 )
 
 engine = create_engine(

@@ -2,10 +2,11 @@ from typing import Any, Dict
 
 from sqlalchemy.orm import Session
 
-from models import BusinessData
+from models import BusinessData, SessionLocal
 
 
 def query_sap_order_status(db: Session, order_id: str) -> Dict[str, Any]:
+    """从真实数据库查询订单状态"""
     record = db.query(BusinessData).filter(BusinessData.order_id == order_id).first()
     if record:
         return {
@@ -17,17 +18,19 @@ def query_sap_order_status(db: Session, order_id: str) -> Dict[str, Any]:
             "details": record.details,
             "last_update": record.last_update,
             "expected_completion": record.expected_completion,
+            "source": "sqlite_db",
         }
 
+    # 订单不存在
     return {
         "order_id": order_id,
-        "status": "制作中",
-        "status_code": "02",
-        "progress_percentage": 50,
-        "details": "订单正在生产中，预计还需要 2-3 天完成",
-        "last_update": "2026-01-21 10:30:00",
-        "expected_completion": "2026-01-24",
-        "source": "mock_fallback",
+        "status": "未找到",
+        "status_code": "00",
+        "progress_percentage": 0,
+        "details": f"系统中未找到订单号 {order_id} 的记录",
+        "last_update": "",
+        "expected_completion": "",
+        "source": "not_found",
     }
 
 

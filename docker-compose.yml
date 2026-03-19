@@ -1,25 +1,6 @@
 version: '3.9'
 
 services:
-  postgres:
-    image: postgres:16
-    container_name: sap-query-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-sap_demo}
-      POSTGRES_USER: ${POSTGRES_USER:-sap_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sap_pass}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sap_user} -d ${POSTGRES_DB:-sap_demo}"]
-      interval: 10s
-      timeout: 5s
-      retries: 8
-
   backend:
     build:
       context: .
@@ -27,7 +8,7 @@ services:
     container_name: sap-query-backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-sap_user}:${POSTGRES_PASSWORD:-sap_pass}@postgres:5432/${POSTGRES_DB:-sap_demo}
+      DATABASE_URL: sqlite:///./sap_data.db
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       DEEPSEEK_API_URL: ${DEEPSEEK_API_URL:-https://api.deepseek.com/v1}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
@@ -35,9 +16,8 @@ services:
       FASTAPI_PORT: 8000
     ports:
       - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
+    volumes:
+      - ./sap_data.db:/app/sap_data.db  # 挂载 SQLite 数据库文件
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -59,6 +39,3 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-
-volumes:
-  postgres_data:
