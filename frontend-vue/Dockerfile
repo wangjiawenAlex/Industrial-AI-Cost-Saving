@@ -1,23 +1,30 @@
-FROM node:18-alpine as build
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
-COPY package*.json ./
-RUN npm install
+# Install pnpm
+RUN npm install -g pnpm
 
-# Copy source
+# Copy package files
+COPY package.json ./
+
+# Install dependencies
+RUN pnpm install
+
+# Copy source code
 COPY . .
 
-# Build
-RUN npm run build
+# Build the application
+RUN pnpm build
 
-# Production
+# Production stage
 FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
 
-# Custom nginx config for SPA
-RUN echo 'server { listen 80; root /usr/share/nginx/html; index index.html; location / { try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
+# Copy built files from builder
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy nginx config
+RUN echo 'server { listen 80; location / { root /usr/share/nginx/html; index index.html; try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

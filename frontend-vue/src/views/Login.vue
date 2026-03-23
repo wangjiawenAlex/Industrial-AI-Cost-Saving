@@ -1,61 +1,58 @@
 <template>
   <div class="login-container">
-    <!-- Left Panel -->
-    <div class="left-panel">
+    <!-- 左侧绿色背景 -->
+    <div class="login-left-panel">
       <div class="left-content">
-        <div class="brand-section">
+        <div class="logo-section">
           <div class="logo-text">Schneider Electric</div>
           <div class="logo-subtext">订单查询系统</div>
         </div>
-        
         <div class="welcome-section">
           <div class="welcome-title">欢迎使用<br>施耐德订单查询系统!</div>
           <div class="welcome-desc">
             一键登录,畅享便捷。在这里,您可随时查询订单状态,获取专属业务支持与服务。专属订单管家,为您提供一站式智慧服务!
           </div>
         </div>
-        
         <div class="dots">
-          <div class="dot active"></div>
-          <div class="dot"></div>
-          <div class="dot"></div>
+          <span class="dot active"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
         </div>
       </div>
     </div>
 
-    <!-- Right Panel - Login Form -->
-    <div class="right-panel">
+    <!-- 右侧登录表单 -->
+    <div class="login-right-panel">
       <div class="login-form-container">
         <h2 class="form-title">登录账户</h2>
-        <p class="form-desc">输入您的凭据以访问系统</p>
-        
-        <el-form :model="loginForm" :rules="rules" ref="loginFormRef">
+        <p class="form-subtitle">输入您的凭据以访问系统</p>
+
+        <el-form :model="loginForm" :rules="rules" ref="formRef" class="login-form">
           <el-form-item prop="username">
             <el-input 
               v-model="loginForm.username" 
               placeholder="请输入用户名"
-              prefix-icon="User"
+              :prefix-icon="User"
               size="large"
             />
           </el-form-item>
-          
+
           <el-form-item prop="password">
             <el-input 
               v-model="loginForm.password" 
               type="password" 
               placeholder="请输入密码"
-              prefix-icon="Lock"
+              :prefix-icon="Lock"
               size="large"
               show-password
-              @keyup.enter="handleLogin"
             />
           </el-form-item>
-          
+
           <div class="form-options">
             <el-checkbox v-model="rememberMe">记住我</el-checkbox>
             <a href="#" class="forgot-link">忘记密码?</a>
           </div>
-          
+
           <el-button 
             type="primary" 
             size="large" 
@@ -66,7 +63,7 @@
             登录
           </el-button>
         </el-form>
-        
+
         <div class="register-link">
           还没有账户? <a href="#">立即注册</a>
         </div>
@@ -79,10 +76,13 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import axios from 'axios'
+import { User, Lock } from '@element-plus/icons-vue'
+import { login } from '@/api'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
-const loginFormRef = ref(null)
+const userStore = useUserStore()
+const formRef = ref(null)
 const loading = ref(false)
 const rememberMe = ref(false)
 
@@ -97,34 +97,35 @@ const rules = {
 }
 
 const handleLogin = async () => {
-  if (!loginFormRef.value) return
+  if (!formRef.value) return
   
-  await loginFormRef.value.validate(async (valid) => {
-    if (!valid) return
-    
-    loading.value = true
-    try {
-      const response = await axios.post('/api/login', {
-        username: loginForm.username,
-        password: loginForm.password
-      })
-      
-      if (response.data.success) {
-        localStorage.setItem('user_id', response.data.user_id)
-        localStorage.setItem('username', loginForm.username)
-        ElMessage.success('登录成功')
-        router.push('/query')
-      } else {
-        ElMessage.error(response.data.message || '登录失败')
+  await formRef.value.validate(async (valid) => {
+    if (valid) {
+      loading.value = true
+      try {
+        const response = await login(loginForm.username, loginForm.password)
+
+        if (response.success) {
+          // 使用 Pinia store 管理用户状态
+          userStore.setUser({
+            token: response.token,
+            user_id: response.user_id,
+            username: loginForm.username
+          })
+          ElMessage.success(response.message || '登录成功')
+          router.push('/query')
+        } else {
+          ElMessage.error(response.message || '登录失败')
+        }
+      } catch (error) {
+        if (error.code === 'ECONNREFUSED') {
+          ElMessage.error('无法连接到后端服务,请确保 FastAPI 服务已启动')
+        } else {
+          ElMessage.error(error.message || '登录异常')
+        }
+      } finally {
+        loading.value = false
       }
-    } catch (error) {
-      if (error.code === 'ECONNREFUSED') {
-        ElMessage.error('无法连接到后端服务,请确保 FastAPI 服务已启动')
-      } else {
-        ElMessage.error(error.response?.data?.message || '登录异常')
-      }
-    } finally {
-      loading.value = false
     }
   })
 }
@@ -136,18 +137,18 @@ const handleLogin = async () => {
   min-height: 100vh;
 }
 
-.left-panel {
+.login-left-panel {
   width: 50%;
   background: linear-gradient(135deg, #3DCD58 0%, #2BA845 100%);
+  padding: 80px 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   position: relative;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 60px;
 }
 
-.left-panel::before {
+.login-left-panel::before {
   content: '';
   position: absolute;
   top: -50%;
@@ -159,7 +160,7 @@ const handleLogin = async () => {
   animation: float 20s ease-in-out infinite;
 }
 
-.left-panel::after {
+.login-left-panel::after {
   content: '';
   position: absolute;
   bottom: -30%;
@@ -182,7 +183,7 @@ const handleLogin = async () => {
   z-index: 10;
 }
 
-.brand-section {
+.logo-section {
   margin-bottom: 60px;
 }
 
@@ -196,7 +197,6 @@ const handleLogin = async () => {
 .logo-subtext {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 60px;
 }
 
 .welcome-section {
@@ -232,17 +232,17 @@ const handleLogin = async () => {
 .dot {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
   background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
 }
 
 .dot.active {
   width: 30px;
-  border-radius: 5px;
   background: white;
+  border-radius: 5px;
 }
 
-.right-panel {
+.login-right-panel {
   width: 50%;
   display: flex;
   align-items: center;
@@ -251,28 +251,35 @@ const handleLogin = async () => {
 }
 
 .login-form-container {
-  width: 100%;
-  max-width: 400px;
-  padding: 20px;
+  width: 380px;
+  padding: 40px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
 }
 
 .form-title {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   color: #333;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-.form-desc {
+.form-subtitle {
+  font-size: 14px;
   color: #666;
   margin-bottom: 30px;
+}
+
+.login-form {
+  margin-top: 20px;
 }
 
 .form-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin: 15px 0 25px;
 }
 
 .forgot-link {
@@ -289,7 +296,6 @@ const handleLogin = async () => {
   background: linear-gradient(135deg, #3DCD58 0%, #2BA845 100%);
   border: none;
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(61, 205, 88, 0.3);
   transition: all 0.3s ease;
 }
 
@@ -300,7 +306,7 @@ const handleLogin = async () => {
 
 .register-link {
   text-align: center;
-  margin-top: 30px;
+  margin-top: 25px;
   font-size: 13px;
   color: #999;
 }
@@ -310,13 +316,12 @@ const handleLogin = async () => {
   text-decoration: none;
 }
 
-/* Responsive */
 @media (max-width: 900px) {
-  .left-panel {
+  .login-left-panel {
     display: none;
   }
   
-  .right-panel {
+  .login-right-panel {
     width: 100%;
   }
 }

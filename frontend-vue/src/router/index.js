@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import Query from '../views/Query.vue'
+import { useUserStore } from '../stores/user'
 
 const routes = [
   {
@@ -21,9 +22,10 @@ const router = createRouter({
   routes
 })
 
+// 路由守卫 - 使用 Pinia store 判断登录状态
 router.beforeEach((to, from, next) => {
-  const userId = localStorage.getItem('user_id')
-  if (to.meta.requiresAuth && !userId) {
+  const userStore = useUserStore()
+  if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     next('/')
   } else {
     next()
