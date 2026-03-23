@@ -281,6 +281,7 @@ def process_query(
 
         # 1. 意图识别（带缓存）
         cache_key_intent = get_cache_key("intent", query_req.query_text[:100])
+        ok = True
         
         if redis_client:
             cached_intent = redis_client.get(cache_key_intent)
@@ -444,12 +445,13 @@ def root():
 @app.get("/health")
 def health_check():
     """健康检查"""
+    from sqlalchemy import text
     health = {"status": "ok", "version": "3.0.0-production"}
     
     # 检查数据库
     try:
         db = SessionLocal()
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db.close()
         health["database"] = "ok"
     except Exception as e:
