@@ -1,233 +1,268 @@
-# SAP 自然语言查询系统 - Demo
+订单智能查询系统
 
-这是一个基于 **Streamlit + FastAPI + DeepSeek API** 的 SAP 订单查询系统 Demo。用户可以通过自然语言查询订单状态，系统会使用 LLM 进行意图识别、SAP 查询和结果美化。
+> 订单状态智能查询，基于 FastAPI + Vue3 + DeepSeek LLM
 
-## 📋 项目特点
+## 📋 项目概述
 
-- ✅ **Streamlit 前端**：快速开发，无需前端工程师
-- ✅ **FastAPI 后端**：高性能 API，支持异步处理
-- ✅ **DeepSeek LLM**：意图识别和结果美化
-- ✅ **数据库日志**：完整的查询审计日志，用于运维追踪
-- ✅ **SAP 模拟**：目前硬编码返回"制作中"，便于测试
-- ✅ **Docker 支持**：容器化部署，环境一致性
+用户可通过自然语言查询订单信息，系统利用 LLM 进行意图识别、从数据库提取订单数据，并生成友好的中文回复。
+
+### 核心能力
+
+- 🔍 **自然语言查询** - 用户输入"查询订单4200000001状态"等自然语言
+- 🧠 **意图识别** - DeepSeek LLM 提取订单号和查询意图
+- 💾 **数据查询** - 从 PostgreSQL 读取真实订单数据
+- ✨ **结果美化** - LLM 生成友好的中文回复
+- 📊 **完整日志** - 记录所有查询行为，支持审计追溯
+
+---
+
+## 🏗️ 技术架构
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Vue3 前端     │────▶│   FastAPI 后端  │────▶│  PostgreSQL    │
+│   (5173/8501)   │     │   (8001)        │     │  (5432)        │
+└─────────────────┘     └────────┬────────┘     └─────────────────┘
+                                 │
+                                 ▼
+                        ┌─────────────────┐
+                        │  DeepSeek LLM   │
+                        │  (意图识别+美化) │
+                        └─────────────────┘
+                                 │
+                                 ▼
+                        ┌─────────────────┐
+                        │   Redis 缓存    │
+                        │   (6379)        │
+                        └─────────────────┘
+```
+
+### 技术栈
+
+| 层级  | 技术选型 | 说明  |
+| --- | --- | --- |
+| 前端  | Vue3 + Element Plus | 现代 SPA，单页应用 |
+| 后端  | FastAPI | Python 异步 Web 框架 |
+| 数据库 | PostgreSQL 15 | 关系型数据存储 |
+| 缓存  | Redis 7 | LLM 响应缓存 |
+| LLM | DeepSeek API | 意图识别 + 结果生成 |
+| 认证  | JWT | Token 鉴权 |
+| 部署  | Docker Compose | 容器化编排 |
+
+---
+
+## 📁 项目结构
+
+```
+Industrial-AI-Cost-Saving/
+├── backend.py                  # FastAPI 主应用
+├── models.py                   # SQLAlchemy 模型 + JWT 工具
+├── llm_handler.py              # DeepSeek LLM 调用封装
+├── sap_mock.py                 # 订单数据查询（SQLite 源）
+├── migrate_to_postgres.py      # SQLite → PostgreSQL 迁移脚本
+├── requirements.txt            # Python 依赖
+├── docker-compose.yml          # Docker 编排配置
+├── Dockerfile.backend          # 后端镜像
+├── Dockerfile.frontend        # 前端镜像
+├── .env                        # 环境变量配置
+├── frontend-vue/               # Vue3 前端源码
+│   ├── src/
+│   │   ├── api/               # API 调用
+│   │   ├── views/             # 页面组件
+│   │   └── router/            # 路由配置
+│   └── vite.config.js
+└── db/
+    └── init/                   # 数据库初始化 SQL
+        ├── 01-users.sql
+        ├── 02-business_data.sql
+        └── 03-query_logs.sql
+```
+
+---
 
 ## 🚀 快速开始
 
 ### 前置条件
 
-1. **Python 3.9+**
-2. **DeepSeek API Key**（获取地址：https://platform.deepseek.com）
-3. **Docker & Docker Compose**（可选，用于容器化部署）
+- Docker & Docker Compose
+- DeepSeek API Key（获取地址：https://platform.deepseek.com）
 
-### 方式 1：本地运行（推荐用于开发）
-
-#### 步骤 1：克隆或下载项目
+### 方式一：Docker 一键部署（推荐）
 
 ```bash
-cd /home/ubuntu/sap_query_demo
+# 1. 克隆项目
+cd /home/wangjiawen/Desktop/saleWeb/Industrial-AI-Cost-Saving
+
+# 2. 配置环境变量（编辑 .env）
+vim .env
+# 修改 DEEPSEEK_API_KEY 为你的密钥
+
+# 3. 启动全部服务
+docker-compose up -d --build
+
+# 4. 检查服务状态
+docker-compose ps
 ```
 
-#### 步骤 2：配置环境变量
+**访问地址：**
 
-编辑 `.env` 文件，填入您的 DeepSeek API Key：
+- Vue3 前端：http://localhost:5173
+- Streamlit 前端：http://localhost:8501
+- 后端 API：http://localhost:8001
+- 健康检查：http://localhost:8001/health
 
-```bash
-DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxx
-```
-
-#### 步骤 3：安装依赖
-
-```bash
-pip install -r requirements.txt
-```
-
-#### 步骤 4：启动后端服务
-
-在一个终端窗口中运行：
+### 方式二：本地开发
 
 ```bash
+# 1. 安装 Python 依赖
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 2. 配置环境变量
+export DEEPSEEK_API_KEY="sk-xxx"
+export DATABASE_URL="postgresql://sap_user:sap_pass123@localhost:5432/sap_db"
+export REDIS_URL="redis://localhost:6379/0"
+
+# 3. 初始化数据库
+# 确保 PostgreSQL 已启动，运行 db/init/*.sql
+
+# 4. 启动后端
 python backend.py
+# 后端运行在 http://localhost:8001
+
+# 5. 启动 Vue3 前端（另一个终端）
+cd frontend-vue
+npm install
+npm run dev
+# 前端运行在 http://localhost:5173
 ```
 
-您应该看到类似的输出：
-```
-INFO:     Uvicorn running on http://127.0.0.1:8000
-INFO:     Application startup complete
-```
+---
 
-#### 步骤 5：启动前端应用
+## 📡 API 接口
 
-在另一个终端窗口中运行：
+### 认证
 
-```bash
-streamlit run frontend.py
-```
-
-Streamlit 会自动打开浏览器，显示应用地址：
-```
-Local URL: http://localhost:8501
-Network URL: http://xxx.xxx.xxx.xxx:8501
-```
-
-#### 步骤 6：测试应用
-
-1. 在登录页面输入任意用户名和密码（首次登录会自动创建用户）
-2. 在查询框中输入自然语言查询，例如：
-   - "查询订单 4200000001 的状态"
-   - "订单号 4200000002 现在怎么样"
-   - "我想知道订单 4200000003 完成了吗"
-3. 点击"查询"按钮，系统会返回美化后的结果
-
-### 方式 2：Docker 容器化部署
-
-#### 步骤 1：配置环境变量
-
-编辑 `.env` 文件：
-
-```bash
-DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxx
-```
-
-#### 步骤 2：启动容器
-
-```bash
-docker-compose up -d
-```
-
-#### 步骤 3：访问应用
-
-- **前端**：http://localhost:8501
-- **后端 API**：http://localhost:8000
-
-#### 步骤 4：查看日志
-
-```bash
-# 查看后端日志
-docker-compose logs backend
-
-# 查看前端日志
-docker-compose logs frontend
-
-# 实时跟踪所有日志
-docker-compose logs -f
-```
-
-#### 步骤 5：停止容器
-
-```bash
-docker-compose down
-```
-
-## 📁 项目结构
-
-```
-sap_query_demo/
-├── backend.py              # FastAPI 后端应用
-├── frontend.py             # Streamlit 前端应用
-├── models.py               # 数据库模型（用户表、日志表）
-├── sap_mock.py             # SAP 模拟模块（硬编码返回"制作中"）
-├── llm_handler.py          # LLM 处理模块（意图识别、结果美化）
-├── requirements.txt        # Python 依赖
-├── .env                    # 环境变量配置
-├── docker-compose.yml      # Docker Compose 配置
-├── Dockerfile.backend      # 后端 Dockerfile
-├── Dockerfile.frontend     # 前端 Dockerfile
-└── README.md               # 本文件
-```
-
-## 🔄 工作流程
-
-```
-用户输入查询
-    ↓
-Streamlit 前端
-    ↓
-FastAPI 后端 /api/query
-    ↓
-LLM 意图识别（提取订单号）
-    ↓
-SAP 查询（目前硬编码返回"制作中"）
-    ↓
-LLM 结果美化（组织友好的中文回复）
-    ↓
-数据库日志记录
-    ↓
-返回结果给前端
-    ↓
-用户看到美化后的结果
-```
-
-## 📊 数据库表结构
-
-### users 表
-
-| 字段 | 类型 | 说明 |
+| 接口  | 方法  | 说明  |
 | --- | --- | --- |
-| id | INTEGER | 主键 |
-| username | VARCHAR(50) | 用户名（唯一） |
-| password | VARCHAR(255) | 密码 |
-| email | VARCHAR(100) | 邮箱（可选） |
-| created_at | DATETIME | 创建时间 |
+| `/api/login` | POST | 用户登录，返回 JWT Token |
 
-### query_logs 表
+**请求体：**
 
-| 字段 | 类型 | 说明 |
+```json
+{
+  "username": "demo",
+  "password": "demo123"
+}
+```
+
+**响应：**
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer"
+}
+```
+
+### 订单查询
+
+| 接口  | 方法  | 说明  |
 | --- | --- | --- |
-| id | INTEGER | 主键 |
-| user_id | INTEGER | 用户 ID |
-| timestamp | DATETIME | 查询时间 |
-| raw_query | TEXT | 用户原始输入 |
-| llm_extracted_intent | TEXT | LLM 提取的意图（JSON） |
-| sap_raw_response | TEXT | SAP 返回的原始数据（JSON） |
-| llm_final_response | TEXT | LLM 美化后的回复 |
-| status | VARCHAR(20) | 查询状态（success/error/timeout） |
+| `/api/query` | POST | 自然语言订单查询（需认证） |
+| `/api/logs` | GET | 查询历史记录（需认证） |
+| `/api/user/me` | GET | 获取当前用户信息（需认证） |
 
-## 🔐 安全性说明
+**查询请求：**
 
-**当前 Demo 的安全性限制：**
+```json
+{
+  "query": "查询订单4200000001的状态"
+}
+```
 
-1. **密码存储**：未加密（Demo 模式）。生产环境应使用 bcrypt 或 argon2。
-2. **API 认证**：未实现 JWT 或 OAuth。生产环境应添加 Token 认证。
-3. **HTTPS**：未启用。生产环境应配置 SSL/TLS。
-4. **CORS**：允许所有来源。生产环境应限制来源。
+**查询响应：**
 
-## 🐛 常见问题
+```json
+{
+  "response": "订单 4200000001 当前状态为制作中，预计完成时间 2024-03-25",
+  "order_id": "4200000001",
+  "intent": "查询订单状态"
+}
+```
 
-### Q1：启动 Streamlit 时出现 "Welcome to Streamlit!" 提示
+### 健康检查
 
-**A：** 这是 Streamlit 的首次运行提示。您可以：
-- 输入邮箱地址，或
-- 直接按 Enter 键跳过
+| 接口  | 方法  | 说明  |
+| --- | --- | --- |
+| `/health` | GET | 服务健康状态 |
+| `/` | GET | 根路径，返回基本信息 |
 
-然后 Streamlit 会自动打开浏览器。
+---
 
-### Q2：后端无法连接到 DeepSeek API
+## 🔐 安全性
 
-**A：** 检查以下几点：
-1. 确认 `DEEPSEEK_API_KEY` 已正确设置
-2. 检查网络连接
-3. 确认 API Key 有效且未过期
-4. 查看后端日志获取详细错误信息
+| 项目  | 状态  | 说明  |
+| --- | --- | --- |
+| 密码存储 | ✅ bcrypt | 密码哈希存储，非明文 |
+| JWT 认证 | ✅ Token | 60分钟过期 |
+| 连接池 | ✅ PostgreSQL | pool_size=10, max_overflow=20 |
+| Redis 缓存 | ✅ 已集成 | 减少 LLM 调用 |
+| API 限流 | ⚠️ 预留 | 可通过 FastAPI-Limiter 实现 |
 
-### Q3：订单号识别失败
+---
 
-**A：** 当前系统期望的订单号格式是 8-10 位数字。您可以：
-1. 修改 `sap_mock.py` 中的 `validate_order_id()` 函数
-2. 调整 LLM 的提示词以改进识别准确度
+## 🧪 测试数据
 
-### Q4：如何查看查询日志？
+| 订单号 | 客户  | 状态  | 进度  |
+| --- | --- | --- | --- |
+| 4200000001 | Schneider xxxXXXXX | 制作中 | 50% |
+| 4200000002 | Schneider XXXXXXXX | 已完成 | 100% |
+| 4200000003 | Siemens XXXXXXXX | 已发货 | 100% |
 
-**A：** 日志存储在 SQLite 数据库中。您可以：
-1. 使用 SQLite 客户端打开 `sap_query_demo.db`
-2. 查询 `query_logs` 表
-3. 或通过 `/api/logs/{user_id}` API 接口获取
+**测试账号：**
 
-## 📞 支持与反馈
+- 用户名：`demo`
+- 密码：`demo123`
 
-如有问题或建议，请：
-1. 检查日志文件
-2. 查看 API 文档
-3. 联系项目维护者：chusilouliu@163.com
+---
+
+## 🔧 配置说明
+
+### 环境变量
+
+| 变量  | 说明  | 默认值 |
+| --- | --- | --- |
+| `DEEPSEEK_API_KEY` | DeepSeek API 密钥 | -   |
+| `DEEPSEEK_API_URL` | API 端点 | https://api.deepseek.com/v1 |
+| `DEEPSEEK_MODEL` | 模型名称 | deepseek-chat |
+| `DATABASE_URL` | PostgreSQL 连接串 | postgresql://sap_user:sap_pass123@postgres:5432/sap_db |
+| `REDIS_URL` | Redis 连接串 | redis://redis:6379/0 |
+| `JWT_SECRET_KEY` | JWT 密钥 | change-this-in-prod |
+| `JWT_EXPIRE_MINUTES` | Token 过期时间 | 60  |
+| `FASTAPI_PORT` | 后端端口 | 8000 |
+
+### Docker 端口映射
+
+| 服务  | 容器端口 | 主机端口 |
+| --- | --- | --- |
+| PostgreSQL | 5432 | 5432 |
+| Redis | 6379 | 6379 |
+| FastAPI | 8000 | 8001 |
+| Vue3 前端 | 5173 | 5173 |
+| Streamlit | 8501 | 8501 |
+
+---
+
+## 📝 生产部署注意事项
+
+1. **修改 JWT_SECRET_KEY** - 使用强随机字符串
+2. **限制 CORS** - 生产环境设置具体域名
+3. **配置 API 限流** - 防止 LLM API 滥用
+4. **开启 HTTPS** - 使用 Nginx 反向代理
+5. **日志收集** - 接入 Prometheus/Grafana
+6. **备份策略** - PostgreSQL 定期备份
+
+---
 
 ## 📄 许可证
 
@@ -235,32 +270,6 @@ MIT License
 
 ---
 
-## 🐳 一键 Docker 部署（推荐）
+## 📞 支持
 
-### 1) 准备环境变量
-
-```bash
-cp .env.example .env
-# 编辑 .env，填入企业 DeepSeek Key
-```
-
-### 2) 启动全部服务（前端 + 后端 + PostgreSQL）
-
-```bash
-docker compose up -d --build
-```
-
-### 3) 访问地址
-
-- 前端：`http://localhost:8501`
-- 后端：`http://localhost:8000`
-- 后端健康检查：`http://localhost:8000/health`
-- PostgreSQL：`localhost:5432`
-
-> 首次启动会自动执行 `db/init/*.sql` 初始化三张核心表：`users`、`business_data`、`query_logs`。
-
-### 4) 停止服务
-
-```bash
-docker compose down
-```
+如有问题请联系：chusilouliu@163.com
