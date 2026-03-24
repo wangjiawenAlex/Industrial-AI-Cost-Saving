@@ -14,6 +14,7 @@ class LLMHandler:
     def __init__(self):
         self.api_key = os.getenv("DEEPSEEK_API_KEY")
         self.api_url = os.getenv("DEEPSEEK_API_URL", "https://api.deepseek.com/v1")
+        self.model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
         
         if not self.api_key:
             raise ValueError("DEEPSEEK_API_KEY 环境变量未设置")
@@ -42,7 +43,7 @@ class LLMHandler:
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "deepseek-chat",
+                    "model": self.model,
                     "messages": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_message}
@@ -98,7 +99,7 @@ SAP 系统返回的数据：
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "deepseek-chat",
+                    "model": self.model,
                     "messages": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_message}
