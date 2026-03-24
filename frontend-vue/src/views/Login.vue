@@ -108,9 +108,9 @@ const handleLogin = async () => {
         if (response.success) {
           // 使用 Pinia store 管理用户状态
           userStore.setUser({
-            token: response.token,
+            token: response.access_token || response.token,
             user_id: response.user_id,
-            username: loginForm.username
+            username: response.username || loginForm.username
           })
           ElMessage.success(response.message || '登录成功')
           router.push('/query')
